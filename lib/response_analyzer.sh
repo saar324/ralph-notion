@@ -131,10 +131,11 @@ parse_json_response() {
     # Claude CLI JSON format embeds the RALPH_STATUS block within the .result text field
     if [[ "$exit_signal" == "false" && "$has_result_field" == "true" ]]; then
         local result_text=$(jq -r '.result // ""' "$output_file" 2>/dev/null)
-        if [[ -n "$result_text" ]] && echo "$result_text" | grep -q -- "---RALPH_STATUS---"; then
+        if [[ -n "$result_text" ]] && echo "$result_text" | grep -qE "(---RALPH_STATUS---|RALPH_STATUS:)"; then
             # Extract EXIT_SIGNAL value from RALPH_STATUS block within result text
+            # Support both "EXIT_SIGNAL:" and "EXIT_SIGNAL=" formats
             local embedded_exit_sig
-            embedded_exit_sig=$(echo "$result_text" | grep "EXIT_SIGNAL:" | cut -d: -f2 | xargs)
+            embedded_exit_sig=$(echo "$result_text" | grep -oE "EXIT_SIGNAL[=:]\s*(true|false)" | head -1 | sed -E 's/EXIT_SIGNAL[=:]\s*//')
             if [[ -n "$embedded_exit_sig" ]]; then
                 # Explicit EXIT_SIGNAL found in RALPH_STATUS block
                 explicit_exit_signal_found="true"
@@ -448,10 +449,11 @@ analyze_response() {
     local explicit_exit_signal_found=false
 
     # 1. Check for explicit structured output (if Claude follows schema)
-    if grep -q -- "---RALPH_STATUS---" "$output_file"; then
-        # Parse structured output
+    # Support both "---RALPH_STATUS---" and "RALPH_STATUS:" formats
+    if grep -qE "(---RALPH_STATUS---|RALPH_STATUS:)" "$output_file"; then
+        # Parse structured output - support both ":" and "=" separators
         local status=$(grep "STATUS:" "$output_file" | cut -d: -f2 | xargs)
-        local exit_sig=$(grep "EXIT_SIGNAL:" "$output_file" | cut -d: -f2 | xargs)
+        local exit_sig=$(grep -oE "EXIT_SIGNAL[=:]\s*(true|false)" "$output_file" | head -1 | sed -E 's/EXIT_SIGNAL[=:]\s*//')
 
         # If EXIT_SIGNAL is explicitly provided, respect it
         if [[ -n "$exit_sig" ]]; then
