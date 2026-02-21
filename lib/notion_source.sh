@@ -23,6 +23,7 @@ NOTION_STATUS_STUCK="${NOTION_STATUS_STUCK:-stuck}"
 # Column names in Notion (customizable via .ralphrc)
 NOTION_COL_TITLE="${NOTION_COL_TITLE:-Task}"
 NOTION_COL_STATUS="${NOTION_COL_STATUS:-Status}"
+NOTION_STATUS_TYPE="${NOTION_STATUS_TYPE:-status}"  # "status" or "select"
 NOTION_COL_PROJECT="${NOTION_COL_PROJECT:-Project}"
 NOTION_COL_PRIORITY="${NOTION_COL_PRIORITY:-Priority}"
 NOTION_COL_RESULT="${NOTION_COL_RESULT:-Result}"
@@ -158,8 +159,12 @@ fetch_notion_tasks() {
     # Build filter
     local filter="{\"and\": ["
 
-    # Filter by status
-    filter+="{\"property\": \"$NOTION_COL_STATUS\", \"select\": {\"equals\": \"$status\"}}"
+    # Filter by status (supports both "status" and "select" types)
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        filter+="{\"property\": \"$NOTION_COL_STATUS\", \"status\": {\"equals\": \"$status\"}}"
+    else
+        filter+="{\"property\": \"$NOTION_COL_STATUS\", \"select\": {\"equals\": \"$status\"}}"
+    fi
 
     # Filter by project if set
     if [[ -n "$NOTION_PROJECT_TAG" ]]; then
@@ -184,11 +189,18 @@ fetch_notion_tasks() {
         return 1
     fi
 
-    # Parse results into simplified format
-    echo "$response" | jq '[.results[] | {
+    # Parse results into simplified format (supports both status and select types)
+    local status_path
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        status_path=".properties[\"$NOTION_COL_STATUS\"].status.name"
+    else
+        status_path=".properties[\"$NOTION_COL_STATUS\"].select.name"
+    fi
+
+    echo "$response" | jq --arg status_path "$status_path" '[.results[] | {
         id: .id,
         title: (.properties["'"$NOTION_COL_TITLE"'"].title[0].plain_text // "Untitled"),
-        status: (.properties["'"$NOTION_COL_STATUS"'"].select.name // "unknown"),
+        status: (.properties["'"$NOTION_COL_STATUS"'"].status.name // .properties["'"$NOTION_COL_STATUS"'"].select.name // "unknown"),
         priority: (.properties["'"$NOTION_COL_PRIORITY"'"].select.name // "medium"),
         project: (.properties["'"$NOTION_COL_PROJECT"'"].select.name // ""),
         url: .url
@@ -264,10 +276,18 @@ update_notion_task_status() {
     local task_id=$1
     local status=$2
 
-    local body=$(jq -n \
-        --arg status "$status" \
-        --arg col "$NOTION_COL_STATUS" \
-        '{properties: {($col): {select: {name: $status}}}}')
+    local body
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        body=$(jq -n \
+            --arg status "$status" \
+            --arg col "$NOTION_COL_STATUS" \
+            '{properties: {($col): {status: {name: $status}}}}')
+    else
+        body=$(jq -n \
+            --arg status "$status" \
+            --arg col "$NOTION_COL_STATUS" \
+            '{properties: {($col): {select: {name: $status}}}}')
+    fi
 
     notion_api_call "PATCH" "/pages/$task_id" "$body" >/dev/null
 }
@@ -286,15 +306,22 @@ claim_notion_task() {
     local hostname=$(hostname -s 2>/dev/null || echo "unknown")
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    local body=$(jq -n \
-        --arg status "$NOTION_STATUS_IN_PROGRESS" \
-        --arg status_col "$NOTION_COL_STATUS" \
-        --arg assigned_col "$NOTION_COL_ASSIGNED" \
-        --arg assigned "$hostname" \
-        '{properties: {
-            ($status_col): {select: {name: $status}},
-            ($assigned_col): {rich_text: [{text: {content: $assigned}}]}
-        }}')
+    local body
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        body=$(jq -n \
+            --arg status "$NOTION_STATUS_IN_PROGRESS" \
+            --arg status_col "$NOTION_COL_STATUS" \
+            '{properties: {
+                ($status_col): {status: {name: $status}}
+            }}')
+    else
+        body=$(jq -n \
+            --arg status "$NOTION_STATUS_IN_PROGRESS" \
+            --arg status_col "$NOTION_COL_STATUS" \
+            '{properties: {
+                ($status_col): {select: {name: $status}}
+            }}')
+    fi
 
     if notion_api_call "PATCH" "/pages/$task_id" "$body" >/dev/null; then
         # Save current task info locally
@@ -324,8 +351,13 @@ complete_notion_task() {
     # Truncate result to 2000 chars (Notion limit)
     result="${result:0:2000}"
 
-    # Build properties update
-    local properties="{\"$NOTION_COL_STATUS\": {\"select\": {\"name\": \"$NOTION_STATUS_DONE\"}}}"
+    # Build properties update (supports both "status" and "select" types)
+    local properties
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        properties="{\"$NOTION_COL_STATUS\": {\"status\": {\"name\": \"$NOTION_STATUS_DONE\"}}}"
+    else
+        properties="{\"$NOTION_COL_STATUS\": {\"select\": {\"name\": \"$NOTION_STATUS_DONE\"}}}"
+    fi
 
     # Add result if provided
     if [[ -n "$result" ]]; then
@@ -367,15 +399,28 @@ mark_notion_task_stuck() {
     # Truncate reason
     reason="${reason:0:2000}"
 
-    local body=$(jq -n \
-        --arg status "$NOTION_STATUS_STUCK" \
-        --arg status_col "$NOTION_COL_STATUS" \
-        --arg result "$reason" \
-        --arg result_col "$NOTION_COL_RESULT" \
-        '{properties: {
-            ($status_col): {select: {name: $status}},
-            ($result_col): {rich_text: [{text: {content: $result}}]}
-        }}')
+    local body
+    if [[ "$NOTION_STATUS_TYPE" == "status" ]]; then
+        body=$(jq -n \
+            --arg status "$NOTION_STATUS_STUCK" \
+            --arg status_col "$NOTION_COL_STATUS" \
+            --arg result "$reason" \
+            --arg result_col "$NOTION_COL_RESULT" \
+            '{properties: {
+                ($status_col): {status: {name: $status}},
+                ($result_col): {rich_text: [{text: {content: $result}}]}
+            }}')
+    else
+        body=$(jq -n \
+            --arg status "$NOTION_STATUS_STUCK" \
+            --arg status_col "$NOTION_COL_STATUS" \
+            --arg result "$reason" \
+            --arg result_col "$NOTION_COL_RESULT" \
+            '{properties: {
+                ($status_col): {select: {name: $status}},
+                ($result_col): {rich_text: [{text: {content: $result}}]}
+            }}')
+    fi
 
     if notion_api_call "PATCH" "/pages/$task_id" "$body" >/dev/null; then
         rm -f "$NOTION_CURRENT_TASK_FILE"
