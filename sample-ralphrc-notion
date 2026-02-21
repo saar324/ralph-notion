@@ -1,0 +1,90 @@
+# =============================================================================
+# Ralph Loop Configuration with Notion Integration
+# =============================================================================
+# Copy this file to .ralphrc in your project directory
+
+# =============================================================================
+# NOTION CONFIGURATION
+# =============================================================================
+
+# Your Notion integration token (required for Notion mode)
+# Get one at: https://www.notion.so/my-integrations
+NOTION_API_KEY="secret_your_token_here"
+
+# Your Notion database ID (required for Notion mode)
+# Get this from the database URL: notion.so/xxxxx?v=... (the xxxxx part)
+NOTION_DATABASE_ID="your_database_id_here"
+
+# Filter tasks by project tag (optional)
+# Only tasks with this value in the "Project" column will be fetched
+NOTION_PROJECT_TAG="myproject"
+
+# How long to wait (seconds) when no tasks are available
+NOTION_POLL_INTERVAL=30
+
+# =============================================================================
+# NOTION STATUS VALUES (customize to match your database)
+# =============================================================================
+
+# Status for unreviewed tasks (default: backlog)
+NOTION_STATUS_BACKLOG="backlog"
+
+# Status for tasks ready to be worked on (default: ready)
+NOTION_STATUS_READY="ready"
+
+# Status for tasks being worked on (default: in_progress)
+NOTION_STATUS_IN_PROGRESS="in_progress"
+
+# Status for completed tasks (default: done)
+NOTION_STATUS_DONE="done"
+
+# Status for stuck tasks (default: stuck)
+NOTION_STATUS_STUCK="stuck"
+
+# =============================================================================
+# NOTION COLUMN NAMES (customize to match your database schema)
+# =============================================================================
+
+# Task title column (Title property type)
+NOTION_COL_TITLE="Task"
+
+# Status column (Select property type)
+NOTION_COL_STATUS="Status"
+
+# Project column (Select property type) - used for filtering
+NOTION_COL_PROJECT="Project"
+
+# Priority column (Select property type) - used for sorting
+NOTION_COL_PRIORITY="Priority"
+
+# Result notes column (Text property type) - Ralph writes completion notes here
+NOTION_COL_RESULT="Result"
+
+# Commit URL column (URL property type) - Ralph writes commit links here
+NOTION_COL_COMMIT="Commit"
+
+# Assigned column (Text property type) - Ralph writes hostname here
+NOTION_COL_ASSIGNED="Assigned"
+
+# =============================================================================
+# CLAUDE CODE SETTINGS
+# =============================================================================
+
+# Maximum API calls per hour (rate limiting)
+MAX_CALLS_PER_HOUR=100
+
+# Execution timeout in minutes
+CLAUDE_TIMEOUT_MINUTES=15
+
+# Tools allowed for Claude Code (comma-separated)
+# Safe git subcommands only - avoids destructive commands
+ALLOWED_TOOLS="Write,Read,Edit,Bash(git add *),Bash(git commit *),Bash(git diff *),Bash(git log *),Bash(git status),Bash(git status *),Bash(git push *),Bash(git pull *),Bash(git fetch *),Bash(git checkout *),Bash(git branch *),Bash(git stash *),Bash(git merge *),Bash(git tag *),Bash(npm *),Bash(pytest)"
+
+# Enable session continuity across loops
+SESSION_CONTINUITY=true
+
+# Session expiration in hours (start fresh after this)
+SESSION_EXPIRY_HOURS=24
+
+# Enable verbose logging
+RALPH_VERBOSE=false
