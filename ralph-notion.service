@@ -1,0 +1,18 @@
+[Unit]
+Description=Ralph Notion Loop - Autonomous Claude Code Task Runner
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/project
+ExecStart=/root/.ralph-notion/ralph_loop.sh --notion
+Restart=on-failure
+RestartSec=30
+Environment=HOME=/root
+
+# Logging
+StandardOutput=append:/var/log/ralph-notion.log
+StandardError=append:/var/log/ralph-notion.log
+
+[Install]
+WantedBy=multi-user.target
