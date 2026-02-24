@@ -10,7 +10,7 @@
 # These can be set in .ralphrc or environment variables
 NOTION_API_KEY="${NOTION_API_KEY:-}"
 NOTION_DATABASE_ID="${NOTION_DATABASE_ID:-}"
-NOTION_PROJECT_TAG="${NOTION_PROJECT_TAG:-}"  # Filter tasks by project (e.g., "lumutrix")
+NOTION_PROJECT_TAG="${NOTION_PROJECT_TAG:-}"  # Filter tasks by project (e.g., "my-webapp")
 NOTION_API_VERSION="2022-06-28"
 
 # Status values (customizable via .ralphrc)

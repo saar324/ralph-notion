@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/var/www/project
-ExecStart=/root/.ralph-notion/ralph_loop.sh --notion
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__RALPH_HOME__/ralph_loop.sh --notion
 Restart=on-failure
 RestartSec=30
-Environment=HOME=/root
+Environment=HOME=__USER_HOME__
 
 # Logging
 StandardOutput=append:/var/log/ralph-notion.log
