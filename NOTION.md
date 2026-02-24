@@ -17,7 +17,7 @@ This fork adds Notion as a task source for Ralph, enabling autonomous task execu
    |--------|------|---------|
    | Task | Title | Task description |
    | Status | Select | `backlog`, `ready`, `in_progress`, `done`, `stuck` |
-   | Project | Select | Project filter (e.g., `lumutrix`, `bunnybite`) |
+   | Project | Select | Project filter (e.g., `my-webapp`, `my-api`) |
    | Priority | Select | `high`, `medium`, `low` |
    | Result | Text | Notes from Ralph after completion |
    | Commit | URL | Link to commit if applicable |
